@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jukebox & Player - Safari do Dudu</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --safari-green: #2d5a27;
+            --safari-light-green: #486b36;
+            --safari-sand: #f8f9fa;
+            --safari-gold: #d4a373;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-bottom: 110px;
+        }
+
+        .header-title {
+            background: linear-gradient(135deg, var(--safari-green), var(--safari-light-green));
+            color: white;
+            padding: 15px;
+            border-bottom: 4px solid var(--safari-gold);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .music-card {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .music-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-color: var(--safari-light-green);
+        }
+
+        /* Player fixo na parte inferior */
+        .sticky-player {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 2px solid #e2e8f0;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+            z-index: 1050;
+            padding: 12px;
+        }
+
+        /* Painéis Laterais Fixos (Ocultos em celulares) */
+        .side-panel {
+            position: fixed;
+            top: 0;
+            width: 130px;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 15px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .side-panel.left {
+            left: 0;
+        }
+
+        .side-panel.right {
+            right: 0;
+        }
+
+        .side-img {
+            width: 100%;
+            height: 100px;
+            object-fit: contain;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        /* Animação do CD Rodando */
+        .vinyl-container {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto;
+        }
+
+        .vinyl-disc {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: repeating-radial-gradient(#111, #111 4px, #222 6px, #111 8px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .rotating {
+            animation: spin 4s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .vinyl-label {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #fff;
+            position: absolute;
+        }
+
+        .vinyl-label img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .vinyl-center-hole {
+            width: 16px;
+            height: 16px;
+            background-color: #f0f2f5;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 2;
+            border: 2px solid #ccc;
+        }
+
+        @media (min-width: 1200px) {
+            .main-content-wrapper {
+                margin-left: 140px;
+                margin-right: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Painel Lateral Esquerdo -->
+<div class="side-panel left d-none d-xl-flex">
+    <img src="https://i.postimg.cc/ZKLGPBWf/1-FESTA-JUNINA.jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/jdhp6wDk/3-meses-(2).jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/wTkC5y1k/1-PASCOA.jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/5Nmh5YXK/4-meses-3.jpg" class="side-img" alt="Foto lateral">
+</div>
+
+<!-- Painel Lateral Direito -->
+<div class="side-panel right d-none d-xl-flex">
+    <img src="https://i.postimg.cc/L6VckYJG/5-meses-2.jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/GhjWP84f/Whats-App-Image-2026-08-03-at-15-28-00.jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/CLYyfHxX/7-meses-3.jpg" class="side-img" alt="Foto lateral">
+    <img src="https://i.postimg.cc/tCcyLn50/Whats-App-Image-2026-08-03-at-15-50-58-(2).jpg" class="side-img" alt="Foto lateral">
+</div>
+
+<header class="header-title text-center mb-3">
+    <h4 class="fw-bold mb-0"><i class="fas fa-music me-2"></i> Trilha Sonora - Safari do Dudu</h4>
+    <p class="mb-0 text-warning small fw-semibold">Ouça as músicas do aniversário</p>
+</header>
+
+<div class="container main-content-wrapper px-3" style="max-width: 800px;">
+
+    <!-- Capa / CD Animado + Botão de Compartilhar -->
+    <div class="text-center mb-4">
+        <!-- Vinil / CD Rodando -->
+        <div class="vinyl-container mb-3">
+            <div id="cdVinil" class="vinyl-disc">
+                <div class="vinyl-label">
+                    <img src="https://i.postimg.cc/zXkswbyp/dudu-1-ano.jpg" alt="Capa Safari do Dudu">
+                </div>
+                <div class="vinyl-center-hole"></div>
+            </div>
+        </div>
+
+        <!-- Botão de Compartilhar -->
+        <button class="btn btn-outline-success rounded-pill px-4 fw-bold shadow-sm" onclick="compartilharPagina()">
+            <i class="fas fa-share-alt me-2"></i> Compartilhar Trilha Sonora
+        </button>
+    </div>
+
+    <!-- Lista de Músicas -->
+    <h5 class="fw-bold mb-3 text-secondary"><i class="fas fa-list me-2"></i> Músicas Disponíveis</h5>
+    <div id="listaMusicas" class="row g-2">
+        <div class="text-center text-muted py-4">Carregando músicas...</div>
+    </div>
+
+</div>
+
+<!-- Player de Áudio Fixo Rodapé -->
+<div class="sticky-player">
+    <div class="container" style="max-width: 800px;">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <div class="text-truncate">
+                <strong id="playerTitulo" class="text-dark small d-block">Nenhuma música selecionada</strong>
+                <span id="playerArtista" class="text-muted" style="font-size: 0.75rem;">-</span>
+            </div>
+            <button class="btn btn-outline-danger btn-sm" onclick="pararMusica()"><i class="fas fa-stop"></i></button>
+        </div>
+        <audio id="audioElement" controls class="w-100" style="height: 35px;"></audio>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = "https://wtujaawfxmfqgvvwkjce.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Tgu_ZkuqGcDdRxeisegrQQ_DU1-QKPx";
+    
+    let supabaseClient = null;
+    if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+
+    let listaGlobalMusicas = [];
+    let indiceAtual = -1;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        carregarMusicas();
+
+        // Configurar evento para avançar automaticamente quando a música acabar
+        const audio = document.getElementById('audioElement');
+        audio.addEventListener('ended', () => {
+            proximaMusica();
+        });
+    });
+
+    async function carregarMusicas() {
+        const divLista = document.getElementById('listaMusicas');
+        divLista.innerHTML = `<div class="text-center text-muted py-3">Carregando...</div>`;
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('musicas')
+                .select('*')
+                .order('titulo', { ascending: true });
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                divLista.innerHTML = `<div class="col-12 text-center text-muted py-4 bg-white rounded-3 border">Nenhuma música cadastrada ainda.</div>`;
+                return;
+            }
+
+            listaGlobalMusicas = data;
+
+            let html = '';
+            data.forEach((m, index) => {
+                html += `
+                    <div class="col-12" id="musica-item-${m.id}">
+                        <div class="music-card p-3 d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3 overflow-hidden">
+                                <div class="bg-light text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; min-width: 45px;">
+                                    <i class="fas fa-music"></i>
+                                </div>
+                                <div class="text-truncate">
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate">${m.titulo}</h6>
+                                    <small class="text-muted">${m.artista}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-success btn-sm rounded-pill px-3 fw-bold" onclick="tocarIndice(${index})">
+                                    <i class="fas fa-play me-1"></i> Tocar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            divLista.innerHTML = html;
+
+        } catch (err) {
+            console.error(err);
+            divLista.innerHTML = `<div class="col-12 text-center text-danger py-3">Erro ao carregar lista de músicas.</div>`;
+        }
+    }
+
+    function tocarIndice(index) {
+        if (index < 0 || index >= listaGlobalMusicas.length) return;
+        indiceAtual = index;
+        const m = listaGlobalMusicas[indiceAtual];
+        tocarMusica(m.url, m.titulo, m.artista);
+    }
+
+    function proximaMusica() {
+        if (listaGlobalMusicas.length === 0) return;
+        indiceAtual++;
+        if (indiceAtual >= listaGlobalMusicas.length) {
+            indiceAtual = 0; // Volta para a primeira música da lista (loop)
+        }
+        tocarIndice(indiceAtual);
+    }
+
+    function tocarMusica(url, titulo, artista) {
+        const audio = document.getElementById('audioElement');
+        document.getElementById('playerTitulo').innerText = titulo;
+        document.getElementById('playerArtista').innerText = artista;
+        
+        audio.src = url;
+        audio.play().catch(e => console.log("Autoplay bloqueado pelo navegador:", e));
+
+        // Ativa a animação do CD rodando
+        const cd = document.getElementById('cdVinil');
+        cd.classList.add('rotating');
+    }
+
+    function pararMusica() {
+        const audio = document.getElementById('audioElement');
+        audio.pause();
+        audio.currentTime = 0;
+        document.getElementById('playerTitulo').innerText = 'Nenhuma música selecionada';
+        document.getElementById('playerArtista').innerText = '-';
+        indiceAtual = -1;
+
+        // Para a animação do CD
+        const cd = document.getElementById('cdVinil');
+        cd.classList.remove('rotating');
+    }
+
+    function compartilharPagina() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Trilha Sonora - Safari do Dudu',
+                text: 'Ouça as músicas da festa de 1 ano do Safari do Dudu!',
+                url: window.location.href
+            }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link copiado para a área de transferência!');
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
